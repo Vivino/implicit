@@ -40,6 +40,9 @@ class AlternatingLeastSquares(RecommenderBase):
         # cache of item norms (useful for calculating similar items)
         self._item_norms = None
 
+        # function called after each iteration to allow for saving and evaluating
+        self.callback = None
+
         check_open_blas()
 
     def fit(self, item_users):
@@ -76,10 +79,14 @@ class AlternatingLeastSquares(RecommenderBase):
                    num_threads=self.num_threads)
             log.debug("finished iteration %i in %s", iteration, time.time() - s)
 
+            loss = None
             if self.calculate_training_loss:
                 loss = _als.calculate_loss(Cui, self.user_factors, self.item_factors,
                                            self.regularization, num_threads=self.num_threads)
                 log.debug("loss at iteration %i is %s", iteration, loss)
+
+            if self.callback:
+                self.callback(iteration, loss)
 
     def recommend(self, userid, user_items, N=10):
         """ Returns the top N ranked items for a single user """
